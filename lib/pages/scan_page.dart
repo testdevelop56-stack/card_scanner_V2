@@ -1,85 +1,98 @@
+import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
-import '../models/magic_card.dart';
-import 'dart:math';
 
-// stateless widget for Simulate scan card
+//stafull widget for the camera
 //
-class ScanPage extends StatelessWidget {
-  ScanPage({Key? key}) : super(key: key);
+class ScanPage extends StatefulWidget {
+  const ScanPage({Key? key}) : super(key: key);
 
-  final newCard = MagicCard(
-    name: "Lightning Bolt",
-    manaCost: "R",
-    type: "Instant",
-    oracleText: "Deal 3 damage to any target",
-  );
+  @override
+  State<ScanPage> createState() => _ScanPageState();
+}
+
+class _ScanPageState extends State<ScanPage> {
+  //this interrogate if the camera exist or not
+  CameraController? cameraController;
+  Future<void> capturePhoto() async {
+    final controller = cameraController;
+
+    if (controller == null || !controller.value.isInitialized) {
+      return;
+    }
+
+    try {
+      final photo = await controller.takePicture();
+
+      debugPrint('Photo saved at: ${photo.path}');
+    } catch (error) {
+      debugPrint('Camera error: $error');
+    }
+  }
+
+  //initialize the camera
+  @override
+  void initState() {
+    super.initState();
+    initializeCamera();
+  }
+
+  // here is set a function set the camera in await or async
+  Future<void> initializeCamera() async {
+    final cameras = await availableCameras();
+    if (cameras.isEmpty) {
+      debugPrint('No cameras available');
+      return;
+    }
+    final backCamera = cameras.first;
+
+    cameraController = CameraController(
+      backCamera,
+      ResolutionPreset.high,
+    );
+
+    await cameraController!.initialize();
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {});
+  }
+
+  //this state dispose away the cameera aftger using it
+  @override
+  void dispose() {
+    cameraController?.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("Scan Page"),
+        title: Text("Scan Card"),
       ),
-      body: Column(
-        children: [
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context, newCard);
-            },
-            child: const Text("Scan"),
-          ),
-        ],
-      ),
+      body: cameraController == null || !cameraController!.value.isInitialized
+          ? const Center(
+              child: CircularProgressIndicator(),
+            )
+          : Stack(
+              children: [
+                Positioned.fill(
+                  child: CameraPreview(cameraController!),
+                ),
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: 24,
+                  child: Center(
+                    child: FloatingActionButton(
+                      onPressed: capturePhoto,
+                      child: const Icon(Icons.camera_alt),
+                    ),
+                  ),
+                ),
+              ],
+            ),
     );
   }
 }
-
-// random list for card pool for test the creation of a card everytime different.
-//
-final cardsPool = [
-  MagicCard(
-    name: "Lightning Bolt",
-    manaCost: "R",
-    type: "Instant",
-    oracleText: "Deal 3 damage to any target",
-  ),
-  MagicCard(
-    name: "Black Lotus",
-    manaCost: "0",
-    type: "Artifact",
-    oracleText: "Add three mana of any one color",
-  ),
-  MagicCard(
-    name: "Counterspell",
-    manaCost: "UU",
-    type: "Instant",
-    oracleText: "Counter target spell",
-  ),
-  MagicCard(
-    name: "Shock",
-    manaCost: "R",
-    type: "Instant",
-    oracleText: "Deal 2 damage to any target",
-  ),
-  MagicCard(
-    name: "Llanowar Elves",
-    manaCost: "G",
-    type: "Creature",
-    oracleText: "Tap: add G",
-    power: 1,
-    toughness: 1,
-  ),
-  MagicCard(
-    name: "Serra Angel",
-    manaCost: "3WW",
-    type: "Creature",
-    oracleText: "Flying, vigilance",
-    power: 4,
-    toughness: 4,
-  ),
-  MagicCard(
-    name: "Sol Ring",
-    manaCost: "1",
-    type: "Artifact",
-    oracleText: "Tap: Add CC",
-  ),
-];
